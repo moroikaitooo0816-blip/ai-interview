@@ -23,12 +23,10 @@ export default function VideoInterview() {
     setStatus("接続中...");
 
     try {
-      // カメラ・マイク取得
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
-      // 最初のAIメッセージ取得
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,22 +34,11 @@ export default function VideoInterview() {
       });
       const data = await response.json();
 
-      // SimliのICEサーバー取得
-      const iceResponse = await fetch('https://api.simli.ai/getIceServers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': data.simli_api_key,
-        },
-      });
-      const iceData = await iceResponse.json();
-
-      // Simli初期化
-      const simliClient = new SimliClient();
-      simliClientRef.current = simliClient;
-
       const audioElement = new Audio();
       audioElement.autoplay = true;
+
+      const simliClient = new SimliClient();
+      simliClientRef.current = simliClient;
 
       simliClient.Initialize({
         apiKey: data.simli_api_key,
@@ -59,12 +46,10 @@ export default function VideoInterview() {
         handleSilence: true,
         videoRef: videoRef,
         audioRef: { current: audioElement },
-        iceServers: iceData.iceServers || iceData,
       });
 
       await simliClient.start();
 
-      // 最初の音声を送信
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
 
@@ -72,7 +57,6 @@ export default function VideoInterview() {
       setIsStarted(true);
       setIsConnecting(false);
       setStatus("面談中");
-
       startSpeechRecognition();
 
     } catch (error) {
@@ -85,20 +69,15 @@ export default function VideoInterview() {
   const startSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
-
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     recognition.lang = 'ja-JP';
     recognition.continuous = true;
     recognition.interimResults = false;
-
     recognition.onresult = async (event) => {
       const transcript = event.results[event.results.length - 1][0].transcript;
-      if (transcript.trim() && !isAISpeaking) {
-        await sendMessage(transcript);
-      }
+      if (transcript.trim() && !isAISpeaking) await sendMessage(transcript);
     };
-
     recognition.onerror = (e) => console.error('Speech error:', e);
     recognition.start();
   };
@@ -106,31 +85,21 @@ export default function VideoInterview() {
   const sendMessage = async (userText) => {
     setIsAISpeaking(true);
     setStatus("AI応答中...");
-
     const newHistory = [...conversationHistory, { role: 'user', content: userText }];
-
     try {
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_message: userText,
-          conversation_history: newHistory,
-          is_start: false,
-        }),
+        body: JSON.stringify({ user_message: userText, conversation_history: newHistory, is_start: false }),
       });
-
       const data = await response.json();
-
       if (simliClientRef.current) {
         const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
         simliClientRef.current.sendAudioData(audioData);
       }
-
       setConversationHistory([...newHistory, { role: 'assistant', content: data.ai_text }]);
       setStatus("面談中");
       setTimeout(() => setIsAISpeaking(false), 3000);
-
     } catch (error) {
       console.error('Send error:', error);
       setIsAISpeaking(false);
@@ -159,9 +128,7 @@ export default function VideoInterview() {
             カメラとマイクのアクセスを許可してください。<br />
             所要時間は約10〜15分です。
           </p>
-          {status !== "待機中" && (
-            <p className="text-sm text-red-500 mb-4">{status}</p>
-          )}
+          {status !== "待機中" && <p className="text-sm text-red-500 mb-4">{status}</p>}
           <Button onClick={startInterview} disabled={isConnecting} size="lg" className="px-8 py-6 text-base font-medium">
             {isConnecting ? "接続中..." : "ビデオ面談を開始する"}
           </Button>
