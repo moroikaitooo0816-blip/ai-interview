@@ -71,11 +71,15 @@ export default async function handler(req, res) {
       }
     }
 
-    const systemPrompt = `あなたは転職支援会社のプロフェッショナルな面接官AIです。トーン：${toneContext}。日本語のみ。2文以内で簡潔に。
+    const systemPrompt = `あなたは転職支援会社のプロフェッショナルな面接官AIです。トーン：${toneContext}。日本語のみ。1〜2文で簡潔に。
 ${candidateContext}
-${questionsContext}
 
-重要：候補者の名前や経歴は既に把握しています。名前を聞いたり、既知の情報を再度確認する必要はありません。履歴書の内容を踏まえながら、設定された質問を順番に聞いてください。`;
+【厳守ルール】
+- 必ず以下の質問リストを上から順番に1つずつ聞いてください
+- 候補者が回答したら「ありがとうございます」と一言添えて次の質問に進んでください
+- リスト以外の質問は絶対にしないでください
+- 候補者の名前や経歴は把握済みなので確認不要です
+${questionsContext || '質問リストがありません。管理画面で質問を設定してください。'}`;
 
     const [sessionToken, completion] = await Promise.all([
       getSimliToken(faceId),
