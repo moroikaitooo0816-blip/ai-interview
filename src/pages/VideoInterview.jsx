@@ -11,7 +11,6 @@ export default function VideoInterview() {
   const [status, setStatus] = useState("待機中");
   const [conversationHistory, setConversationHistory] = useState([]);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
-
   const videoRef = useRef(null);
   const localVideoRef = useRef(null);
   const simliClientRef = useRef(null);
@@ -21,25 +20,20 @@ export default function VideoInterview() {
   const startInterview = async () => {
     setIsConnecting(true);
     setStatus("接続中...");
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_start: true, conversation_history: [] }),
       });
       const data = await response.json();
-
       const audioElement = new Audio();
       audioElement.autoplay = true;
-
       const simliClient = new SimliClient();
       simliClientRef.current = simliClient;
-
       simliClient.Initialize({
         apiKey: data.simli_api_key,
         faceID: data.face_id,
@@ -47,18 +41,14 @@ export default function VideoInterview() {
         videoRef: videoRef,
         audioRef: { current: audioElement },
       });
-
       await simliClient.start();
-
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
-
       setConversationHistory([{ role: 'assistant', content: data.ai_text }]);
       setIsStarted(true);
       setIsConnecting(false);
       setStatus("面談中");
       startSpeechRecognition();
-
     } catch (error) {
       console.error('Start error:', error);
       setStatus("エラー: " + error.message);
@@ -101,7 +91,6 @@ export default function VideoInterview() {
       setStatus("面談中");
       setTimeout(() => setIsAISpeaking(false), 3000);
     } catch (error) {
-      console.error('Send error:', error);
       setIsAISpeaking(false);
       setStatus("面談中");
     }
@@ -123,11 +112,7 @@ export default function VideoInterview() {
             <Briefcase className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">AIビデオ面談</h1>
-          <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
-            AIアバターとのビデオ面談を開始します。<br />
-            カメラとマイクのアクセスを許可してください。<br />
-            所要時間は約10〜15分です。
-          </p>
+          <p className="text-muted-foreground text-sm mb-8 leading-relaxed">AIアバターとのビデオ面談を開始します。<br />カメラとマイクのアクセスを許可してください。<br />所要時間は約10〜15分です。</p>
           {status !== "待機中" && <p className="text-sm text-red-500 mb-4">{status}</p>}
           <Button onClick={startInterview} disabled={isConnecting} size="lg" className="px-8 py-6 text-base font-medium">
             {isConnecting ? "接続中..." : "ビデオ面談を開始する"}
@@ -155,10 +140,7 @@ export default function VideoInterview() {
       </div>
       <div className="flex-shrink-0 bg-black/80 px-4 py-6 flex items-center justify-center gap-4">
         <Button variant="outline" size="icon" onClick={() => {
-          if (streamRef.current) {
-            streamRef.current.getAudioTracks().forEach(t => t.enabled = isMuted);
-            setIsMuted(!isMuted);
-          }
+          if (streamRef.current) { streamRef.current.getAudioTracks().forEach(t => t.enabled = isMuted); setIsMuted(!isMuted); }
         }} className="w-12 h-12 rounded-full bg-white/10 border-white/20 hover:bg-white/20">
           {isMuted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
         </Button>
