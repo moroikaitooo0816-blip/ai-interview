@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { SimliClient, generateSimliSessionToken } from "simli-client";
+import React, { useState, useRef } from "react";
+import { SimliClient } from "simli-client";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
 import { motion } from "framer-motion";
@@ -28,6 +28,7 @@ export default function VideoInterview() {
       streamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
+      // サーバーからトークン・AI応答・音声を一括取得
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,18 +36,9 @@ export default function VideoInterview() {
       });
       const data = await response.json();
 
-      const tokenData = await generateSimliSessionToken({
-        apiKey: data.simli_api_key,
-        config: {
-          faceId: data.face_id,
-          handleSilence: true,
-          maxSessionLength: 600,
-          maxIdleTime: 300,
-        }
-      });
-
+      // トークン取得直後すぐにSimliClient接続
       const simliClient = new SimliClient(
-        tokenData.session_token,
+        data.session_token,
         videoRef.current,
         audioRef.current,
         null,
@@ -54,20 +46,18 @@ export default function VideoInterview() {
         "livekit"
       );
       simliClientRef.current = simliClient;
-
       await simliClient.start();
 
       setPhase("active");
       setStatus("面談中");
 
+      // 音声送信
       isAISpeakingRef.current = true;
       setIsAISpeaking(true);
-
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
 
-      // AI発話終了を検知（音声長さから推定）
-      const speakDuration = (audioData.length / 16000) * 1000 + 1000;
+      const speakDuration = (audioData.length / 16000) * 1000 + 1500;
       setTimeout(() => {
         isAISpeakingRef.current = false;
         setIsAISpeaking(false);
@@ -92,7 +82,6 @@ export default function VideoInterview() {
     recognition.lang = 'ja-JP';
     recognition.continuous = true;
     recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
 
     recognition.onresult = async (event) => {
       const transcript = event.results[event.results.length - 1][0].transcript;
@@ -133,15 +122,16 @@ export default function VideoInterview() {
         const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
         simliClientRef.current.sendAudioData(audioData);
 
-        const speakDuration = (audioData.length / 16000) * 1000 + 1000;
+        const speakDuration = (audioData.length / 16000) * 1000 + 1500;
         setTimeout(() => {
           isAISpeakingRef.current = false;
           setIsAISpeaking(false);
+          setStatus("面談中");
         }, speakDuration);
       }
 
       setConversationHistory([...newHistory, { role: 'assistant', content: data.ai_text }]);
-      setStatus("面談中");
+
     } catch (error) {
       isAISpeakingRef.current = false;
       setIsAISpeaking(false);
@@ -158,17 +148,9 @@ export default function VideoInterview() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col relative">
-
-      {/* 常にDOMに存在（refをnullにしないため） */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        className={phase === "active" ? "absolute inset-0 w-full h-full object-cover z-0" : "hidden"}
-      />
+      <video ref={videoRef} autoPlay playsInline className={phase === "active" ? "absolute inset-0 w-full h-full object-cover z-0" : "hidden"} />
       <audio ref={audioRef} autoPlay />
 
-      {/* 待機画面 */}
       {phase === "idle" && (
         <div className="flex-1 flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-lg">
@@ -187,7 +169,6 @@ export default function VideoInterview() {
         </div>
       )}
 
-      {/* 接続中 */}
       {phase === "connecting" && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-white">
@@ -197,33 +178,22 @@ export default function VideoInterview() {
         </div>
       )}
 
-      {/* 面談中 */}
       {phase === "active" && (
         <div className="relative z-10 flex flex-col h-screen">
-          {/* ヘッダー */}
           <div className="flex-shrink-0 bg-black/60 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isAISpeaking ? 'bg-green-400 animate-pulse' : 'bg-white/50'}`} />
-              <span className="text-white text-sm">{isAISpeaking ? "AI発話中" : "あなたの番です"}</span>
+              <div className={`w-2 h-2 rounded-full ${isAISpeaking ? 'bg-green-400 animate-pulse' : 'bg-blue-400 animate-pulse'}`} />
+              <span className="text-white text-sm">{isAISpeaking ? "🔊 AI発話中..." : "🎤 話しかけてください"}</span>
             </div>
             <span className="text-white/50 text-xs">AIビデオ面談</span>
           </div>
 
           <div className="flex-1 relative">
-            {/* 候補者カメラ */}
-            <div className="absolute bottom-4 right-4 w-32 h-24 rounded-xl overflow-hidden border-2 border-white/30">
+            <div className="absolute bottom-4 right-4 w-32 h-24 rounded-xl overflow-hidden border-2 border-white/30 z-10">
               <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
             </div>
-
-            {/* 発話インジケーター */}
-            {!isAISpeaking && (
-              <div className="absolute bottom-32 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                <span className="text-white text-sm">🎤 話しかけてください</span>
-              </div>
-            )}
           </div>
 
-          {/* コントロール */}
           <div className="flex-shrink-0 bg-black/60 px-4 py-6 flex items-center justify-center gap-4">
             <Button variant="outline" size="icon" onClick={() => {
               if (streamRef.current) {
@@ -240,7 +210,6 @@ export default function VideoInterview() {
         </div>
       )}
 
-      {/* 終了 */}
       {phase === "ended" && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-white">
