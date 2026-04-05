@@ -184,10 +184,27 @@ export default function VideoInterview() {
     }
   };
 
-  const endInterview = () => {
+  const endInterview = async () => {
     if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
     if (simliClientRef.current) simliClientRef.current.stop();
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+
+    // 面談結果を保存
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id && conversationHistory.length > 0) {
+      setPhase("saving");
+      try {
+        await fetch('/api/interview-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidate_id: id,
+            conversation_history: conversationHistory,
+          }),
+        });
+      } catch(e) { console.error(e); }
+    }
     setPhase("ended");
   };
 
@@ -251,6 +268,15 @@ export default function VideoInterview() {
             <Button onClick={endInterview} size="icon" className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600">
               <PhoneOff className="w-6 h-6 text-white" />
             </Button>
+          </div>
+        </div>
+      )}
+
+      {phase === "saving" && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-white">
+            <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm">面談結果を保存中...</p>
           </div>
         </div>
       )}
