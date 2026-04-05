@@ -33,6 +33,11 @@ export default async function handler(req, res) {
     // 面談設定を取得
     let questionsContext = '';
     let toneContext = 'やや厳格でプロフェッショナル';
+    const toneMap = {
+      'strict': '厳格で威圧感のある緊張した雰囲気。短く鋭い質問で候補者にプレッシャーを与える。',
+      'standard': 'プロフェッショナルで落ち着いた雰囲気。丁寧だが堅い口調。',
+      'friendly': '親しみやすくフレンドリーな雰囲気。明るく話しやすい口調で候補者をリラックスさせる。',
+    };
     const { data: settings } = await supabase
       .from('interview_settings')
       .select('*')
@@ -42,7 +47,7 @@ export default async function handler(req, res) {
       if (settings[0].questions?.length > 0) {
         questionsContext = '\n面談で必ず聞く質問（順番に聞いてください）：\n' + settings[0].questions.map((q, i) => (i+1) + '. ' + (q.text || q)).join('\n');
       }
-      if (settings[0].tone) toneContext = settings[0].tone;
+      if (settings[0].tone) toneContext = toneMap[settings[0].tone] || settings[0].tone;
     }
 
     // 候補者情報をDBから取得
