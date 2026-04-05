@@ -60,7 +60,7 @@ export default function VideoInterview() {
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
 
-      const speakDuration = (audioData.length / 16000) * 1000 + 500;
+      const speakDuration = (audioData.length / 2 / 16000) * 1000 + 300;
       setTimeout(() => {
         isAISpeakingRef.current = false;
         setIsAISpeaking(false);
@@ -149,7 +149,7 @@ export default function VideoInterview() {
         const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
         simliClientRef.current.sendAudioData(audioData);
 
-        const speakDuration = (audioData.length / 16000) * 1000 + 500;
+        const speakDuration = (audioData.length / 2 / 16000) * 1000 + 300;
         setTimeout(() => {
           isAISpeakingRef.current = false;
           setIsAISpeaking(false);
