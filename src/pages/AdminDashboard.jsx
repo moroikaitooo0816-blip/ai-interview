@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Clock, CheckCircle2, BarChart3, Briefcase, LogOut, ExternalLink, Settings } from "lucide-react";
+import { Users, Clock, CheckCircle2, BarChart3, Briefcase, LogOut, ExternalLink, Settings, UserPlus, Upload, Copy, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -27,6 +27,113 @@ function getScoreBadge(score) {
   if (score >= 80) return "text-emerald-700 bg-emerald-50 border-emerald-200";
   if (score >= 60) return "text-amber-700 bg-amber-50 border-amber-200";
   return "text-red-700 bg-red-50 border-red-200";
+}
+
+function CandidateAdd() {
+  const [name, setName] = useState('');
+  const [resumeText, setResumeText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    setResumeText(text);
+  };
+
+  const handleSubmit = async () => {
+    if (!name) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidate_name: name, resume_text: resumeText }),
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      alert('エラーが発生しました');
+    }
+    setLoading(false);
+  };
+
+  const copyUrl = () => {
+    const url = `${window.location.origin}${result.interview_url}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (result) return (
+    <div className="space-y-4">
+      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+        <p className="text-sm font-semibold text-emerald-700 mb-1">✅ 候補者を登録しました</p>
+        <p className="text-sm text-emerald-600">氏名：{result.candidate_name}</p>
+        {result.parsed_info && (
+          <div className="mt-2 text-xs text-emerald-600 space-y-1">
+            {result.parsed_info.current_job && <p>現職：{result.parsed_info.current_job}</p>}
+            {result.parsed_info.desired_job && <p>希望：{result.parsed_info.desired_job}</p>}
+          </div>
+        )}
+      </div>
+      <div className="p-4 bg-muted rounded-lg">
+        <p className="text-xs font-semibold text-foreground mb-2">面談用URL（候補者に送付してください）</p>
+        <div className="flex items-center gap-2">
+          <code className="text-xs bg-background border rounded px-2 py-1 flex-1 overflow-hidden text-ellipsis">
+            {window.location.origin}{result.interview_url}
+          </code>
+          <Button size="sm" variant="outline" onClick={copyUrl} className="gap-1 flex-shrink-0">
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copied ? 'コピー済み' : 'コピー'}
+          </Button>
+        </div>
+      </div>
+      <Button onClick={() => { setResult(null); setName(''); setResumeText(''); }} variant="outline" className="w-full">
+        別の候補者を追加
+      </Button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium block mb-1">候補者氏名 <span className="text-red-500">*</span></label>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="例：山田 太郎"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+      <div>
+        <label className="text-sm font-medium block mb-1">履歴書（テキスト/PDF）</label>
+        <div className="border-2 border-dashed rounded-lg p-6 text-center">
+          <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground mb-2">ファイルをアップロード、またはテキストを貼り付け</p>
+          <input type="file" accept=".txt,.pdf,.doc,.docx" onChange={handleFileUpload} className="hidden" id="resume-upload" />
+          <label htmlFor="resume-upload">
+            <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+              <span>ファイルを選択</span>
+            </Button>
+          </label>
+        </div>
+        <textarea
+          value={resumeText}
+          onChange={e => setResumeText(e.target.value)}
+          placeholder="または、履歴書の内容をここに貼り付けてください..."
+          rows={6}
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none mt-2"
+        />
+      </div>
+      <Button onClick={handleSubmit} disabled={!name || loading} className="w-full">
+        {loading ? '処理中...' : '候補者を登録してURLを発行'}
+      </Button>
+    </div>
+  );
 }
 
 export default function AdminDashboard() {
@@ -72,6 +179,7 @@ export default function AdminDashboard() {
         <Tabs defaultValue="interviews" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="interviews" className="gap-2"><Users className="w-4 h-4" />面談一覧</TabsTrigger>
+            <TabsTrigger value="candidates" className="gap-2"><UserPlus className="w-4 h-4" />候補者追加</TabsTrigger>
             <TabsTrigger value="settings" className="gap-2"><Settings className="w-4 h-4" />質問設定</TabsTrigger>
           </TabsList>
 
@@ -158,6 +266,13 @@ export default function AdminDashboard() {
                   </Table>
                 </div>
               )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="candidates">
+            <Card className="p-6">
+              <h2 className="text-sm font-semibold text-foreground mb-4">候補者を追加・URL発行</h2>
+              <CandidateAdd />
             </Card>
           </TabsContent>
 
