@@ -37,7 +37,7 @@ export default async function handler(req, res) {
           candidate_name,
           candidate_resume_text: resume_text,
           candidate_parsed_info: parsedInfo,
-          status: 'pending',
+          status: 'in_progress',
         })
         .select()
         .single();
