@@ -8,6 +8,8 @@ import CandidateInterview from '@/pages/CandidateInterview';
 import AdminDashboard from '@/pages/AdminDashboard';
 import InterviewDetail from '@/pages/InterviewDetail';
 import VideoInterview from '@/pages/VideoInterview';
+import CompanyDashboard from '@/pages/CompanyDashboard';
+import MasterDashboard from '@/pages/MasterDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
@@ -24,6 +26,8 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<CandidateInterview />} />
       <Route path="/video" element={<VideoInterview />} />
+      <Route path="/company/:slug" element={<CompanyDashboard />} />
+      <Route path="/master" element={<MasterDashboard />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/admin/interview/:id" element={<InterviewDetail />} />
       <Route path="*" element={<PageNotFound />} />
