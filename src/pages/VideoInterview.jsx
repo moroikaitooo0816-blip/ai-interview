@@ -112,6 +112,8 @@ export default function VideoInterview() {
   if (!isStarted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <video ref={videoRef} autoPlay playsInline className="hidden" />
+        <audio ref={audioRef} autoPlay className="hidden" />
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-lg">
           <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-6">
             <Briefcase className="w-8 h-8 text-primary-foreground" />
