@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { SimliClient, generateIceServers } from "simli-client";
+import { SimliClient } from "simli-client";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
 import { motion } from "framer-motion";
@@ -32,9 +32,6 @@ export default function VideoInterview() {
       });
       const data = await response.json();
 
-      // SimliのgenerateIceServersを使用
-      const iceRes = await fetch("/api/ice-servers"); const iceServers = await iceRes.json();
-
       const audioElement = new Audio();
       audioElement.autoplay = true;
 
@@ -47,7 +44,7 @@ export default function VideoInterview() {
         handleSilence: true,
         videoRef: videoRef,
         audioRef: { current: audioElement },
-        iceServers: iceServers,
+        transport: "livekit",
       });
 
       await simliClient.start();
