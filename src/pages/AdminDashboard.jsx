@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Interview } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Clock, CheckCircle2, BarChart3, Briefcase, LogOut, ExternalLink, Settings, UserPlus, Upload, Copy, Check } from "lucide-react";
+import { Users, Clock, CheckCircle2, BarChart3, Briefcase, LogOut, ExternalLink, Settings, UserPlus, Upload, Copy, Check, Trash2, Link2, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -27,6 +27,110 @@ function getScoreBadge(score) {
   if (score >= 80) return "text-emerald-700 bg-emerald-50 border-emerald-200";
   if (score >= 60) return "text-amber-700 bg-amber-50 border-amber-200";
   return "text-red-700 bg-red-50 border-red-200";
+}
+
+function CandidateList() {
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [copiedId, setCopiedId] = useState(null);
+
+  useEffect(() => {
+    fetch('/api/candidates')
+      .then(r => r.json())
+      .then(data => { setCandidates(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const copyUrl = (id, interviewUrl) => {
+    const url = `https://ai-interview-five-psi.vercel.app${interviewUrl || `/video?id=${id}`}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const deleteCandidate = async (id) => {
+    if (!confirm('この候補者を削除しますか？')) return;
+    await fetch(`/api/candidates?id=${id}`, { method: 'DELETE' });
+    setCandidates(prev => prev.filter(c => c.id !== id));
+  };
+
+  const statusMap = {
+    in_progress: { label: '未実施', className: 'text-amber-700 bg-amber-50 border-amber-200' },
+    completed: { label: '完了', className: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    pending: { label: '未実施', className: 'text-slate-500 bg-slate-50 border-slate-200' },
+  };
+
+  if (loading) return <div className="text-center py-8 text-muted-foreground text-sm">読み込み中...</div>;
+
+  if (candidates.length === 0) return (
+    <div className="text-center py-16">
+      <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+      <p className="text-sm text-muted-foreground">候補者がいません</p>
+    </div>
+  );
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/40">
+            <TableHead className="text-xs font-semibold">氏名</TableHead>
+            <TableHead className="text-xs font-semibold">登録日</TableHead>
+            <TableHead className="text-xs font-semibold text-center">ステータス</TableHead>
+            <TableHead className="text-xs font-semibold text-center">面談URL</TableHead>
+            <TableHead className="text-xs font-semibold text-center">結果</TableHead>
+            <TableHead className="text-xs font-semibold text-center">削除</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {candidates.map(c => {
+            const statusInfo = statusMap[c.status] || statusMap.pending;
+            return (
+              <TableRow key={c.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-xs font-bold text-primary">{(c.candidate_name || '?')[0]}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{c.candidate_name || '名前未設定'}</p>
+                      <p className="text-xs text-muted-foreground">{c.candidate_parsed_info?.current_job || ''}</p>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {c.created_at ? new Date(c.created_at).toLocaleDateString('ja-JP') : '—'}
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge variant="outline" className={`text-xs ${statusInfo.className}`}>{statusInfo.label}</Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => copyUrl(c.id, c.interview_url)}>
+                    {copiedId === c.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    {copiedId === c.id ? 'コピー済み' : 'URLコピー'}
+                  </Button>
+                </TableCell>
+                <TableCell className="text-center">
+                  {c.status === 'completed' ? (
+                    <Link to={`/admin/interview/${c.id}`}>
+                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                        <FileText className="w-3 h-3" />結果
+                      </Button>
+                    </Link>
+                  ) : <span className="text-xs text-muted-foreground">—</span>}
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => deleteCandidate(c.id)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 function CandidateAdd() {
@@ -183,6 +287,7 @@ export default function AdminDashboard() {
         <Tabs defaultValue="interviews" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="interviews" className="gap-2"><Users className="w-4 h-4" />面談一覧</TabsTrigger>
+            <TabsTrigger value="candidate-list" className="gap-2"><Users className="w-4 h-4" />候補者管理</TabsTrigger>
             <TabsTrigger value="candidates" className="gap-2"><UserPlus className="w-4 h-4" />候補者追加</TabsTrigger>
             <TabsTrigger value="settings" className="gap-2"><Settings className="w-4 h-4" />質問設定</TabsTrigger>
           </TabsList>
@@ -270,6 +375,15 @@ export default function AdminDashboard() {
                   </Table>
                 </div>
               )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="candidate-list">
+            <Card>
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">候補者一覧</h2>
+              </div>
+              <CandidateList />
             </Card>
           </TabsContent>
 
