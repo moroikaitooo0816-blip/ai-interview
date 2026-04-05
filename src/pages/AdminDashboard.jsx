@@ -65,7 +65,7 @@ function CandidateAdd() {
   };
 
   const copyUrl = () => {
-    const url = `https://ai-interview-five-psi.vercel.app${result.interview_url}`;
+    const url = `https://ai-interview-five-psi.vercel.app${result.interview_url || `/video?id=${result.id}`}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -75,7 +75,7 @@ function CandidateAdd() {
     <div className="space-y-4">
       <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
         <p className="text-sm font-semibold text-emerald-700 mb-1">✅ 候補者を登録しました</p>
-        <p className="text-sm text-emerald-600">氏名：{result.candidate_name}</p>
+        <p className="text-sm text-emerald-600">氏名：{result.candidate_name || name}</p>
         {result.parsed_info && (
           <div className="mt-2 text-xs text-emerald-600 space-y-1">
             {result.parsed_info.current_job && <p>現職：{result.parsed_info.current_job}</p>}
