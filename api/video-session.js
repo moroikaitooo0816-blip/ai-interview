@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     const audioBase64 = Buffer.from(audioBuffer).toString('base64');
 
     // 3. SimliでアバターのFace IDを返す
-    const faceId = process.env.SIMLI_FACE_ID || '0c2b8b04-5274-4e36-8f8c-4e6e9e4e4e4e';
+    const faceId = process.env.SIMLI_FACE_ID || '0c2b8b04-5274-41f1-a21c-d5c98322efa9';
 
     return res.status(200).json({
       ai_text: aiText,
