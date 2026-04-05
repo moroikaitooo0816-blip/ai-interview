@@ -22,6 +22,8 @@ export default function MasterDashboard() {
       .trim() + '-' + Math.random().toString(36).slice(2, 6);
   };
   const [adding, setAdding] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   useEffect(() => {
     if (authed) {
@@ -39,6 +41,16 @@ export default function MasterDashboard() {
     } else {
       alert('パスワードが違います');
     }
+  };
+
+  const saveEdit = async () => {
+    await fetch('/api/agencies', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editingCompany.id, ...editForm }),
+    });
+    setAgencies(prev => prev.map(c => c.id === editingCompany.id ? { ...c, ...editForm } : c));
+    setEditingCompany(null);
   };
 
   const addCompany = async () => {
@@ -164,7 +176,10 @@ export default function MasterDashboard() {
                         <p className="text-xs text-muted-foreground">/{company.slug}</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600" onClick={() => deleteCompany(company.id)}>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-400 hover:text-blue-600" onClick={() => { setEditingCompany(company); setEditForm({ name: company.name, admin_password: company.admin_password, slug: company.slug }); }}>
+                      <span className="text-xs">✏️</span>
+                    </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600" onClick={() => deleteCompany(company.id)}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
@@ -184,6 +199,32 @@ export default function MasterDashboard() {
           </div>
         )}
       </div>
+
+      {/* 編集モーダル */}
+      {editingCompany && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-sm font-semibold mb-4">編集：{editingCompany.name}</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium block mb-1">会社名</label>
+                <input type="text" value={editForm.name || ''} onChange={e => setEditForm(p => ({...p, name: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1">管理パスワード</label>
+                <input type="text" value={editForm.admin_password || ''} onChange={e => setEditForm(p => ({...p, admin_password: e.target.value}))} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground">
+                管理画面URL: /agency/{editingCompany.slug}
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={saveEdit} className="flex-1">保存</Button>
+              <Button variant="outline" onClick={() => setEditingCompany(null)} className="flex-1">キャンセル</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
