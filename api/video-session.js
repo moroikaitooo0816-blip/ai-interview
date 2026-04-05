@@ -71,15 +71,24 @@ export default async function handler(req, res) {
       }
     }
 
-    const systemPrompt = `あなたは転職支援会社のプロフェッショナルな面接官AIです。トーン：${toneContext}。日本語のみ。1〜2文で簡潔に。
+    // 既に聞いた質問を抽出
+const askedQuestions = (conversation_history || [])
+  .filter(m => m.role === 'assistant')
+  .map(m => m.content);
+
+const systemPrompt = `あなたは転職支援会社のプロフェッショナルな面接官AIです。トーン：${toneContext}。日本語のみ。2文以内で簡潔に。
 ${candidateContext}
 
 【厳守ルール】
-- 必ず以下の質問リストを上から順番に1つずつ聞いてください
+- 以下の質問リストを上から順番に1つずつ聞いてください
 - 候補者が回答したら「ありがとうございます」と一言添えて次の質問に進んでください
-- リスト以外の質問は絶対にしないでください
+- 既に聞いた質問は絶対に繰り返さないでください
+- リスト以外の質問はしないでください
 - 候補者の名前や経歴は把握済みなので確認不要です
-${questionsContext || '質問リストがありません。管理画面で質問を設定してください。'}`;
+
+${questionsContext || '質問リストがありません。'}
+
+既に聞いた質問数：${askedQuestions.length}件（次はリストの${askedQuestions.length + 1}番目を聞いてください）`;
 
     const [sessionToken, completion] = await Promise.all([
       getSimliToken(faceId),
