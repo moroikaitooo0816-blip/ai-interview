@@ -31,7 +31,7 @@ const REVIEW_BADGE = {
 const REVIEW_LABEL = { pass: "合格", hold: "保留", fail: "不合格", pending: "未審査" };
 
 export default function InterviewDetail() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("admin_auth") === "1");
+  const authed = true; // 認証不要
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const queryClient = useQueryClient();
   const { id: interviewId } = useParams();
@@ -39,10 +39,10 @@ export default function InterviewDetail() {
   const { data: interview, isLoading } = useQuery({
     queryKey: ["interview", interviewId],
     queryFn: () => Interview.get(interviewId),
-    enabled: !!interviewId && authed,
+    enabled: !!interviewId,
   });
 
-  if (!authed) return <AdminAuth onAuth={() => setAuthed(true)} />;
+
 
   if (isLoading) {
     return (
