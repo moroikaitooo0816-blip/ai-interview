@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { SimliClient } from "simli-client";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
@@ -10,6 +10,21 @@ export default function VideoInterview() {
   const [isMuted, setIsMuted] = useState(false);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
+
+  const [candidateId, setCandidateId] = useState(null);
+  const [candidateInfo, setCandidateInfo] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id) {
+      setCandidateId(id);
+      fetch(`/api/interviews/${id}`)
+        .then(r => r.json())
+        .then(data => setCandidateInfo(data))
+        .catch(console.error);
+    }
+  }, []);
 
   const videoRef = useRef(null);
   const audioRef = useRef(null);
@@ -32,7 +47,7 @@ export default function VideoInterview() {
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_start: true, conversation_history: [] }),
+        body: JSON.stringify({ is_start: true, conversation_history: [], candidate_id: candidateId }),
       });
       const data = await response.json();
 
