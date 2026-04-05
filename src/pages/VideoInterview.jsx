@@ -40,13 +40,10 @@ export default function VideoInterview() {
       });
       const tokenData = await tokenRes.json(); const sessionToken = tokenData.session_token;
 
-      const audioElement = new Audio();
-      audioElement.autoplay = true;
-
       const simliClient = new SimliClient(
         sessionToken,
         videoRef,
-        audioElement,
+        { current: new Audio() },
         null,
         undefined,
         "livekit"
