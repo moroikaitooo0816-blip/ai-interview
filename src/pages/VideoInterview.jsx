@@ -14,16 +14,14 @@ export default function VideoInterview() {
   const [candidateId, setCandidateId] = useState(null);
   const [candidateInfo, setCandidateInfo] = useState(null);
 
+  const [agencySlug, setAgencySlug] = useState(null);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
-    if (id) {
-      setCandidateId(id);
-      fetch(`/api/interviews/${id}`)
-        .then(r => r.json())
-        .then(data => setCandidateInfo(data))
-        .catch(console.error);
-    }
+    const agency = params.get('agency');
+    if (id) setCandidateId(id);
+    if (agency) setAgencySlug(agency);
   }, []);
 
   const videoRef = useRef(null);
@@ -48,7 +46,7 @@ export default function VideoInterview() {
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_start: true, conversation_history: [], candidate_id: candidateId }),
+        body: JSON.stringify({ is_start: true, conversation_history: [], candidate_id: candidateId, agency_slug: agencySlug }),
       });
       const data = await response.json();
 
@@ -157,7 +155,7 @@ export default function VideoInterview() {
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_message: userText, conversation_history: newHistory, is_start: false }),
+        body: JSON.stringify({ user_message: userText, conversation_history: newHistory, is_start: false, candidate_id: candidateId, agency_slug: agencySlug }),
       });
       const data = await response.json();
 

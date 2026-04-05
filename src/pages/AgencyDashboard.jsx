@@ -57,7 +57,7 @@ export default function AgencyDashboard() {
   };
 
   const copyUrl = (id) => {
-    navigator.clipboard.writeText(`https://ai-interview-five-psi.vercel.app/video?id=${id}`);
+    navigator.clipboard.writeText(`https://ai-interview-five-psi.vercel.app/video?id=${id}&agency=${slug}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };

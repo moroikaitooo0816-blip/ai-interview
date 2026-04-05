@@ -25,29 +25,50 @@ async function getSimliToken(faceId) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
 
-  const { user_message, is_start, conversation_history, candidate_id } = req.body;
+  const { user_message, is_start, conversation_history, candidate_id, agency_slug } = req.body;
 
   try {
-    const faceId = process.env.SIMLI_FACE_ID || '0c2b8b04-5274-41f1-a21c-d5c98322efa9';
+    let faceId = process.env.SIMLI_FACE_ID || '0c2b8b04-5274-41f1-a21c-d5c98322efa9';
+    let voiceId = process.env.ELEVENLABS_VOICE_ID || 'pUgmTF2V1ptIKsYb6qON';
 
-    // 面談設定を取得
-    let questionsContext = '';
-    let toneContext = 'やや厳格でプロフェッショナル';
     const toneMap = {
       'strict': '厳格で威圧感のある緊張した雰囲気。短く鋭い質問で候補者にプレッシャーを与える。',
       'standard': 'プロフェッショナルで落ち着いた雰囲気。丁寧だが堅い口調。',
       'friendly': '親しみやすくフレンドリーな雰囲気。明るく話しやすい口調で候補者をリラックスさせる。',
     };
-    const { data: settings } = await supabase
-      .from('interview_settings')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    if (settings && settings[0]) {
-      if (settings[0].questions?.length > 0) {
-        questionsContext = '\n面談で必ず聞く質問（順番に聞いてください）：\n' + settings[0].questions.map((q, i) => (i+1) + '. ' + (q.text || q)).join('\n');
+
+    // agency設定を取得（agency_slugまたはcandidate_idから）
+    let questionsContext = '';
+    let toneContext = 'やや厳格でプロフェッショナル';
+
+    let agencyData = null;
+    if (agency_slug) {
+      const { data } = await supabase.from('agencies').select('*').eq('slug', agency_slug).single();
+      agencyData = data;
+    } else if (candidate_id) {
+      const { data: candidate } = await supabase.from('interviews').select('agency_id').eq('id', candidate_id).single();
+      if (candidate?.agency_id) {
+        const { data } = await supabase.from('agencies').select('*').eq('id', candidate.agency_id).single();
+        agencyData = data;
       }
-      if (settings[0].tone) toneContext = toneMap[settings[0].tone] || settings[0].tone;
+    }
+
+    if (agencyData) {
+      if (agencyData.face_id) faceId = agencyData.face_id;
+      if (agencyData.voice_id) voiceId = agencyData.voice_id;
+      if (agencyData.tone) toneContext = toneMap[agencyData.tone] || agencyData.tone;
+      if (agencyData.questions?.length > 0) {
+        questionsContext = '\n面談で必ず聞く質問（順番に聞いてください）：\n' + agencyData.questions.map((q, i) => (i+1) + '. ' + (q.text || q)).join('\n');
+      }
+    } else {
+      // フォールバック：デフォルト設定
+      const { data: settings } = await supabase.from('interview_settings').select('*').order('created_at', { ascending: false }).limit(1);
+      if (settings && settings[0]) {
+        if (settings[0].questions?.length > 0) {
+          questionsContext = '\n面談で必ず聞く質問（順番に聞いてください）：\n' + settings[0].questions.map((q, i) => (i+1) + '. ' + (q.text || q)).join('\n');
+        }
+        if (settings[0].tone) toneContext = toneMap[settings[0].tone] || settings[0].tone;
+      }
     }
 
     // 候補者情報をDBから取得
@@ -114,7 +135,7 @@ ${questionsContext || '質問リストがありません。'}
 
     const aiText = completion.choices[0].message.content;
 
-    const voiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
+    // voiceId already set above
     const elevenResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=pcm_16000`,
       {
