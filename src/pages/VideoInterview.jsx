@@ -45,7 +45,7 @@ export default function VideoInterview() {
 
       const simliClient = new SimliClient(
         sessionToken,
-        videoRef.current,
+        videoRef,
         audioElement,
         null,
         undefined,
