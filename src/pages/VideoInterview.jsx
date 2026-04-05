@@ -86,7 +86,7 @@ export default function VideoInterview() {
     recognitionRef.current = recognition;
     recognition.lang = 'ja-JP';
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
 
     let silenceTimer = null;
     let accumulatedText = '';
@@ -100,13 +100,14 @@ export default function VideoInterview() {
         }
       }
 
-      // 既存のタイマーをリセット
+      // 声が検知されるたびにタイマーをリセット（話している間はAIに切り替わらない）
       if (silenceTimer) clearTimeout(silenceTimer);
 
-      // 5秒間黙ったらAIが応答
+      // ユーザーが5秒黙ったらAIが応答
       silenceTimer = setTimeout(async () => {
         const text = accumulatedText.trim();
         accumulatedText = '';
+        silenceTimer = null;
         if (text && !isAISpeakingRef.current) {
           await sendMessage(text);
         }
