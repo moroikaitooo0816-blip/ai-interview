@@ -40,10 +40,7 @@ export default async function handler(req, res) {
       .limit(1);
     if (settings && settings[0]) {
       if (settings[0].questions?.length > 0) {
-        questionsContext = `
-面談で必ず聞く質問（順番に聞いてください）：
-${settings[0].questions.map((q, i) => `${i+1}. ${q}`).join('
-')}`;
+        questionsContext = '\n面談で必ず聞く質問（順番に聞いてください）：\n' + settings[0].questions.map((q, i) => (i+1) + '. ' + q).join('\n');
       }
       if (settings[0].tone) toneContext = settings[0].tone;
     }
