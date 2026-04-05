@@ -57,17 +57,17 @@ export default function ScoreDisplay({ score, scoreBreakdown, overallComment }) 
                 className="bg-card border border-border rounded-lg p-3"
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-foreground">{item.item}</span>
-                  <span className={cn("text-xs font-bold", getScoreColor(item.score * 10))}>
-                    {item.score}/10
+                  <span className="text-xs font-medium text-foreground">{item.category || item.item}</span>
+                  <span className={cn("text-xs font-bold", getScoreColor(item.score))}>
+                    {item.score}/100
                   </span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-1.5 mb-1.5">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${item.score * 10}%` }}
+                    animate={{ width: `${item.score}%` }}
                     transition={{ delay: index * 0.05 + 0.3, duration: 0.5 }}
-                    className={cn("h-1.5 rounded-full bg-gradient-to-r", getScoreBg(item.score * 10))}
+                    className={cn("h-1.5 rounded-full bg-gradient-to-r", getScoreBg(item.score))}
                   />
                 </div>
                 {item.comment && (

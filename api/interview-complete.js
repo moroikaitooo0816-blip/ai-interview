@@ -13,13 +13,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    // AIによる評価レポート生成
+    // 候補者情報を取得
+    const { data: candidateData } = await supabase
+      .from('interviews')
+      .select('candidate_name, candidate_parsed_info, candidate_resume_text')
+      .eq('id', candidate_id)
+      .single();
+
+    const transcript = conversation_history.map(m => `${m.role === 'assistant' ? 'AI面接官' : '候補者'}: ${m.content}`).join('\n');
+
+    // AIによる評価レポート生成（社会人基礎力16項目）
     const evaluation = await openai.chat.completions.create({
       model: 'gpt-4.1',
       messages: [
         {
           role: 'system',
-          content: `あなたは転職支援会社のベテラン面接官です。以下の面談会話を分析して、候補者の評価レポートをJSONで返してください。
+          content: `あなたは転職支援会社のベテラン面接官です。以下の面談会話を分析して、候補者の詳細評価レポートをJSONで返してください。
+
+候補者情報：
+${candidateData ? JSON.stringify(candidateData.candidate_parsed_info) : '不明'}
 
 必ず以下の形式で返してください：
 {
@@ -29,22 +41,33 @@ export default async function handler(req, res) {
     "communication": 0-100,
     "motivation": 0-100,
     "experience": 0-100,
-    "potential": 0-100
+    "potential": 0-100,
+    "logical_thinking": 0-100,
+    "challenge_spirit": 0-100,
+    "teamwork": 0-100,
+    "self_expression": 0-100
+  },
+  "social_skills": {
+    "前に踏み出す力": 0-100,
+    "考え抜く力": 0-100,
+    "チームで働く力": 0-100
   },
   "strengths": ["強み1", "強み2", "強み3"],
   "concerns": ["懸念点1", "懸念点2"],
   "recommendation": "pass" または "hold" または "fail",
-  "recommendation_reason": "判定理由"
+  "recommendation_reason": "判定理由（2文）",
+  "candidate_feedback": "候補者本人へのフィードバックメッセージ（励ましと改善点を含む3文程度）",
+  "followup_questions": ["もし追加で聞くべき質問1", "追加質問2"]
 }
 
 JSONのみ返してください。`
         },
         {
           role: 'user',
-          content: '面談会話:\n' + conversation_history.map(m => `${m.role === 'assistant' ? 'AI面接官' : '候補者'}: ${m.content}`).join('\n')
+          content: '面談会話：\n' + transcript
         }
       ],
-      max_tokens: 1000,
+      max_tokens: 1500,
       temperature: 0.3,
     });
 
@@ -77,11 +100,18 @@ JSONのみ返してください。`
           { category: 'モチベーション', score: report.scores?.motivation || 0 },
           { category: '経験・スキル', score: report.scores?.experience || 0 },
           { category: 'ポテンシャル', score: report.scores?.potential || 0 },
+          { category: '論理的思考力', score: report.scores?.logical_thinking || 0 },
+          { category: 'チャレンジ精神', score: report.scores?.challenge_spirit || 0 },
+          { category: 'チームワーク', score: report.scores?.teamwork || 0 },
+          { category: '自己表現力', score: report.scores?.self_expression || 0 },
         ],
         summaries: [
           ...(report.strengths || []).map(s => ({ type: 'strength', content: s })),
           ...(report.concerns || []).map(c => ({ type: 'concern', content: c })),
-          { type: 'recommendation_reason', content: report.recommendation_reason || '' }
+          { type: 'recommendation_reason', content: report.recommendation_reason || '' },
+          { type: 'candidate_feedback', content: report.candidate_feedback || '' },
+          { type: 'social_skills', content: JSON.stringify(report.social_skills || {}) },
+          ...(report.followup_questions || []).map(q => ({ type: 'followup', content: q })),
         ],
       })
       .eq('id', candidate_id);
