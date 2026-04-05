@@ -8,12 +8,11 @@ export default async function handler(req, res) {
   const { interview_id, user_message, is_start, conversation_history } = req.body;
 
   try {
-    // 1. GPT-4.1でAIの返答を生成
     const messages = is_start ? [
-      { role: 'system', content: 'あなたは転職支援会社のプロフェッショナルな面接官AIです。やや厳格でプロフェッショナルなトーンで話してください。最初に挨拶と自己紹介をして、候補者の名前を確認してください。日本語で話してください。' },
+      { role: 'system', content: 'あなたは転職支援会社のプロフェッショナルな面接官AIです。やや厳格でプロフェッショナルなトーンで話してください。最初に挨拶と自己紹介をして、候補者の名前を確認してください。日本語で話してください。簡潔に2〜3文で話してください。' },
       { role: 'user', content: '面談を開始してください。' }
     ] : [
-      { role: 'system', content: 'あなたは転職支援会社のプロフェッショナルな面接官AIです。やや厳格でプロフェッショナルなトーンで話してください。日本語で話してください。' },
+      { role: 'system', content: 'あなたは転職支援会社のプロフェッショナルな面接官AIです。やや厳格でプロフェッショナルなトーンで話してください。日本語で話してください。簡潔に2〜3文で話してください。' },
       ...(conversation_history || []),
       { role: 'user', content: user_message }
     ];
@@ -21,16 +20,16 @@ export default async function handler(req, res) {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4.1',
       messages,
-      max_tokens: 300,
+      max_tokens: 200,
       temperature: 0.7,
     });
 
     const aiText = completion.choices[0].message.content;
 
-    // 2. ElevenLabsで音声生成
+    // ElevenLabsでPCM16形式で音声生成（Simliが期待する形式）
     const voiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
     const elevenResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=pcm_16000`,
       {
         method: 'POST',
         headers: {
@@ -48,7 +47,6 @@ export default async function handler(req, res) {
     const audioBuffer = await elevenResponse.arrayBuffer();
     const audioBase64 = Buffer.from(audioBuffer).toString('base64');
 
-    // 3. SimliでアバターのFace IDを返す
     const faceId = process.env.SIMLI_FACE_ID || '0c2b8b04-5274-41f1-a21c-d5c98322efa9';
 
     return res.status(200).json({
