@@ -12,6 +12,15 @@ export default function MasterDashboard() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newCompany, setNewCompany] = useState({ name: '', slug: '', admin_password: 'admin1234' });
+
+  const generateSlug = (name) => {
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim() + '-' + Math.random().toString(36).slice(2, 6);
+  };
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -109,12 +118,15 @@ export default function MasterDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs font-medium block mb-1">会社名 *</label>
-                <input type="text" value={newCompany.name} onChange={e => setNewCompany(p => ({...p, name: e.target.value}))} placeholder="〇〇エージェント" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input type="text" value={newCompany.name} onChange={e => {
+                  const name = e.target.value;
+                  setNewCompany(p => ({...p, name, slug: p.slug || generateSlug(name)}));
+                }} placeholder="〇〇エージェント" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div>
-                <label className="text-xs font-medium block mb-1">URL識別子 *</label>
-                <input type="text" value={newCompany.slug} onChange={e => setNewCompany(p => ({...p, slug: e.target.value.toLowerCase().replace(/\s/g, '-')}))} placeholder="company-abc" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                <p className="text-xs text-muted-foreground mt-1">/company/{newCompany.slug || 'xxx'}</p>
+                <label className="text-xs font-medium block mb-1">URL識別子（自動生成）</label>
+                <input type="text" value={newCompany.slug} onChange={e => setNewCompany(p => ({...p, slug: e.target.value.toLowerCase().replace(/\s/g, '-')}))} placeholder="自動生成されます" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <p className="text-xs text-muted-foreground mt-1">/agency/{newCompany.slug || 'xxx'}</p>
               </div>
               <div>
                 <label className="text-xs font-medium block mb-1">管理パスワード</label>
