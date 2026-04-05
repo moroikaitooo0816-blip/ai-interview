@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { SimliClient } from "simli-client";
+import { SimliClient, generateSimliSessionToken } from "simli-client";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
 import { motion } from "framer-motion";
@@ -25,6 +25,7 @@ export default function VideoInterview() {
       streamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
+      // サーバーからAI応答とSimli設定を取得
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,20 +33,28 @@ export default function VideoInterview() {
       });
       const data = await response.json();
 
+      // Simliセッショントークンを取得
+      const sessionToken = await generateSimliSessionToken({
+        apiKey: data.simli_api_key,
+        config: {
+          faceId: data.face_id,
+          syncAudio: true,
+        }
+      });
+
       const audioElement = new Audio();
       audioElement.autoplay = true;
 
-      const simliClient = new SimliClient();
+      // SimliClientをLivekitモードで作成
+      const simliClient = new SimliClient(
+        sessionToken,
+        videoRef.current,
+        audioElement,
+        null,
+        undefined,
+        "livekit"
+      );
       simliClientRef.current = simliClient;
-
-      simliClient.Initialize({
-        apiKey: data.simli_api_key,
-        faceID: data.face_id,
-        handleSilence: true,
-        videoRef: videoRef,
-        audioRef: { current: audioElement },
-        transport: "livekit",
-      });
 
       await simliClient.start();
 
