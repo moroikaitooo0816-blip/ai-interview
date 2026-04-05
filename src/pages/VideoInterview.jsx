@@ -43,7 +43,7 @@ export default function VideoInterview() {
         faceID: data.face_id,
         handleSilence: true,
         videoRef: videoRef,
-        audioRef: audioRef,
+        audioRef: { current: audioRef.current },
       });
 
       await simliClient.start();
