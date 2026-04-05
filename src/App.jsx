@@ -9,6 +9,7 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import InterviewDetail from '@/pages/InterviewDetail';
 import VideoInterview from '@/pages/VideoInterview';
 import CompanyDashboard from '@/pages/CompanyDashboard';
+import AgencyDashboard from '@/pages/AgencyDashboard';
 import MasterDashboard from '@/pages/MasterDashboard';
 
 const AuthenticatedApp = () => {
@@ -26,6 +27,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<CandidateInterview />} />
       <Route path="/video" element={<VideoInterview />} />
+      <Route path="/agency/:slug" element={<AgencyDashboard />} />
       <Route path="/company/:slug" element={<CompanyDashboard />} />
       <Route path="/master" element={<MasterDashboard />} />
       <Route path="/admin" element={<AdminDashboard />} />
