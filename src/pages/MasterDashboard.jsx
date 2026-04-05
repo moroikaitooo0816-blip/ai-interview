@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 export default function MasterDashboard() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem("master_auth") === "1");
   const [password, setPassword] = useState('');
-  const [agencies, setCompanies] = useState([]);
+  const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newCompany, setNewCompany] = useState({ name: '', slug: '', admin_password: 'admin1234' });
