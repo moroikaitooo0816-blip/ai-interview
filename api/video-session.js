@@ -30,6 +30,24 @@ export default async function handler(req, res) {
   try {
     const faceId = process.env.SIMLI_FACE_ID || '0c2b8b04-5274-41f1-a21c-d5c98322efa9';
 
+    // 面談設定を取得
+    let questionsContext = '';
+    let toneContext = 'やや厳格でプロフェッショナル';
+    const { data: settings } = await supabase
+      .from('interview_settings')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (settings && settings[0]) {
+      if (settings[0].questions?.length > 0) {
+        questionsContext = `
+面談で必ず聞く質問（順番に聞いてください）：
+${settings[0].questions.map((q, i) => `${i+1}. ${q}`).join('
+')}`;
+      }
+      if (settings[0].tone) toneContext = settings[0].tone;
+    }
+
     // 候補者情報をDBから取得
     let candidateContext = '';
     let candidateName = '';
@@ -56,10 +74,11 @@ export default async function handler(req, res) {
       }
     }
 
-    const systemPrompt = `あなたは転職支援会社のプロフェッショナルな面接官AIです。やや厳格でプロフェッショナルなトーンで話してください。日本語のみ。2文以内で簡潔に。
+    const systemPrompt = `あなたは転職支援会社のプロフェッショナルな面接官AIです。トーン：${toneContext}。日本語のみ。2文以内で簡潔に。
 ${candidateContext}
+${questionsContext}
 
-重要：候補者の名前や経歴は既に把握しています。名前を聞いたり、既知の情報を再度確認する必要はありません。履歴書の内容を踏まえた質問をしてください。`;
+重要：候補者の名前や経歴は既に把握しています。名前を聞いたり、既知の情報を再度確認する必要はありません。履歴書の内容を踏まえながら、設定された質問を順番に聞いてください。`;
 
     const [sessionToken, completion] = await Promise.all([
       getSimliToken(faceId),
