@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { User, Bot } from "lucide-react";
 
 export default function ChatBubble({ message, isLast }) {
-  const isUser = message.role === "user";
+  const isUser = message.role === "assistant"; // AIを右側に表示
 
   return (
     <motion.div
@@ -18,9 +18,9 @@ export default function ChatBubble({ message, isLast }) {
         isUser ? "bg-primary/10" : "bg-primary"
       )}>
         {isUser ? (
-          <User className="w-4 h-4 text-primary" />
-        ) : (
           <Bot className="w-4 h-4 text-primary-foreground" />
+        ) : (
+          <User className="w-4 h-4 text-primary" />
         )}
       </div>
       <div className={cn(
