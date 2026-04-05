@@ -111,13 +111,24 @@ function CandidateList() {
                   </Button>
                 </TableCell>
                 <TableCell className="text-center">
-                  {c.status === 'completed' ? (
-                    <Link to={`/admin/interview/${c.id}`}>
-                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
-                        <FileText className="w-3 h-3" />結果
+                  <div className="flex items-center justify-center gap-1">
+                    {c.status === 'completed' && (
+                      <Link to={`/admin/interview/${c.id}`}>
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                          <FileText className="w-3 h-3" />結果
+                        </Button>
+                      </Link>
+                    )}
+                    {c.candidate_resume_text && (
+                      <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                        const win = window.open('', '_blank');
+                        win.document.write(`<html><head><title>${c.candidate_name}の履歴書</title><style>body{font-family:sans-serif;padding:2rem;white-space:pre-wrap;line-height:1.8;}</style></head><body>${c.candidate_resume_text}</body></html>`);
+                      }}>
+                        <FileText className="w-3 h-3" />履歴書
                       </Button>
-                    </Link>
-                  ) : <span className="text-xs text-muted-foreground">—</span>}
+                    )}
+                    {!c.candidate_resume_text && c.status !== 'completed' && <span className="text-xs text-muted-foreground">—</span>}
+                  </div>
                 </TableCell>
                 <TableCell className="text-center">
                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => deleteCandidate(c.id)}>
