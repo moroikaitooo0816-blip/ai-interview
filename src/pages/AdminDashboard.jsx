@@ -61,7 +61,7 @@ function CandidateAdd() {
   };
 
   const copyUrl = () => {
-    const url = `${window.location.origin}${result.interview_url}`;
+    const url = `https://ai-interview-five-psi.vercel.app${result.interview_url}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -83,7 +83,7 @@ function CandidateAdd() {
         <p className="text-xs font-semibold text-foreground mb-2">面談用URL（候補者に送付してください）</p>
         <div className="flex items-center gap-2">
           <code className="text-xs bg-background border rounded px-2 py-1 flex-1 overflow-hidden text-ellipsis">
-            {window.location.origin}{result.interview_url}
+            https://ai-interview-five-psi.vercel.app{result.interview_url}
           </code>
           <Button size="sm" variant="outline" onClick={copyUrl} className="gap-1 flex-shrink-0">
             {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
