@@ -120,7 +120,7 @@ ${candidateContext}
 ${questionsContext || '質問リストがありません。'}
 
 既に聞いた質問数：${askedQuestions.length}件 / 全${totalQuestions}件
-${isLastQuestion ? '【重要】全ての質問が終了しました。必ず終了の挨拶をしてください。それ以外は話さないでください。' : `次はリストの${askedQuestions.length + 1}番目を聞いてください`}`;
+${isLastQuestion ? '【重要】全ての質問が終了しました。「本日はお時間をいただきありがとうございました。画面下の終了ボタンを押して通話をお切りください。」とだけ言ってください。' : `次はリストの${askedQuestions.length + 1}番目を聞いてください`}`;
 
     const [sessionToken, completion] = await Promise.all([
       getSimliToken(faceId),
