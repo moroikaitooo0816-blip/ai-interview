@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { SimliClient } from "simli-client";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
@@ -33,25 +33,16 @@ export default function VideoInterview() {
       });
       const data = await response.json();
 
-      // セッショントークン取得
-      const tokenRes = await fetch('/api/simli-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ face_id: data.face_id }),
-      });
-      const tokenData = await tokenRes.json();
-      const sessionToken = tokenData.session_token;
-
-      // SimliClientをLivekitモードで作成（audioRef.currentをDOM要素として渡す）
-      const simliClient = new SimliClient(
-        sessionToken,
-        videoRef.current,
-        audioRef.current,
-        null,
-        undefined,
-        "livekit"
-      );
+      const simliClient = new SimliClient();
       simliClientRef.current = simliClient;
+
+      simliClient.Initialize({
+        apiKey: data.simli_api_key,
+        faceID: data.face_id,
+        handleSilence: true,
+        videoRef: videoRef,
+        audioRef: audioRef,
+      });
 
       await simliClient.start();
 
@@ -146,9 +137,9 @@ export default function VideoInterview() {
         </div>
         <span className="text-white/50 text-xs">AIビデオ面談</span>
       </div>
-      <div className="flex-1 relative">
+      <div className="flex-1 relative bg-gray-900 flex items-center justify-center">
         <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-        <audio ref={audioRef} autoPlay />
+        <audio ref={audioRef} autoPlay playsInline />
         <div className="absolute bottom-4 right-4 w-32 h-24 rounded-xl overflow-hidden border-2 border-white/20">
           <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
         </div>
