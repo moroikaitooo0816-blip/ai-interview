@@ -219,19 +219,51 @@ export default function VideoInterview() {
       <audio ref={audioRef} autoPlay />
 
       {phase === "idle" && (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-lg">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-6">
-              <Briefcase className="w-8 h-8 text-primary-foreground" />
+        <div className="flex-1 flex items-center justify-center p-4 bg-background">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-lg">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="w-8 h-8 text-primary-foreground" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground mb-2">AIビデオ面談へようこそ</h1>
+              <p className="text-muted-foreground text-sm">面談を始める前に以下をご確認ください</p>
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">AIビデオ面談</h1>
-            <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
-              AIアバターとのビデオ面談を開始します。<br />
-              カメラとマイクのアクセスを許可してください。
-            </p>
-            <Button onClick={startInterview} size="lg" className="px-8 py-6 text-base font-medium">
-              ビデオ面談を開始する
+
+            <div className="space-y-3 mb-8">
+              <div className="flex gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <span className="text-blue-500 text-lg">🤖</span>
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">AIが面接官を担当します</p>
+                  <p className="text-xs text-blue-600 mt-0.5">本面談はAIアバターが進行します。通常の面接と同様に、自然にお話しください。</p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <span className="text-emerald-500 text-lg">📊</span>
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">評価は公平・客観的に行われます</p>
+                  <p className="text-xs text-emerald-600 mt-0.5">回答内容をもとにAIが分析します。最終的な合否判断は人間の担当者が行います。</p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <span className="text-amber-500 text-lg">🔒</span>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">プライバシーは保護されます</p>
+                  <p className="text-xs text-amber-600 mt-0.5">面談内容は採用選考のみに使用されます。第三者への提供はありません。</p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <span className="text-purple-500 text-lg">⏱️</span>
+                <div>
+                  <p className="text-sm font-semibold text-purple-800">所要時間：約10〜15分</p>
+                  <p className="text-xs text-purple-600 mt-0.5">静かな環境で、カメラとマイクをご準備ください。</p>
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={startInterview} size="lg" className="w-full py-6 text-base font-medium">
+              面談を開始する
             </Button>
+            <p className="text-[11px] text-muted-foreground text-center mt-3">※ カメラ・マイクの使用許可が必要です</p>
           </motion.div>
         </div>
       )}
@@ -287,12 +319,23 @@ export default function VideoInterview() {
       )}
 
       {phase === "ended" && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-white">
-            <h2 className="text-2xl font-bold mb-4">面談が終了しました</h2>
-            <p className="text-white/70 mb-8">ご参加ありがとうございました</p>
-            <Button onClick={() => window.location.href = '/'}>トップページへ戻る</Button>
-          </div>
+        <div className="flex-1 flex items-center justify-center p-4 bg-background">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-lg text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">✅</span>
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">面談が完了しました</h2>
+            <p className="text-muted-foreground text-sm mb-8">ご参加いただきありがとうございました。<br />結果は担当者よりご連絡いたします。</p>
+            <div className="p-4 bg-muted rounded-lg text-left mb-6 space-y-2">
+              <p className="text-xs font-semibold text-foreground">📋 次のステップ</p>
+              <p className="text-xs text-muted-foreground">・面談結果は数日以内に担当者が確認します</p>
+              <p className="text-xs text-muted-foreground">・選考結果はメールまたはお電話にてご連絡します</p>
+              <p className="text-xs text-muted-foreground">・ご不明点は担当のキャリアアドバイザーまでお問い合わせください</p>
+            </div>
+            <Button variant="outline" onClick={() => window.close()}>
+              ウィンドウを閉じる
+            </Button>
+          </motion.div>
         </div>
       )}
     </div>
