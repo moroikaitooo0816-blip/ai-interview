@@ -273,6 +273,35 @@ export default function AgencyDashboard() {
                 <label className="text-sm font-medium block mb-2">Voice ID（ElevenLabs）</label>
                 <input type="text" value={settings.voice_id} onChange={e => setSettings(p => ({...p, voice_id: e.target.value}))} placeholder="pUgmTF2V1ptIKsYb6qON" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
+              <div>
+                <label className="text-sm font-medium block mb-2">質問リスト</label>
+                <div className="space-y-2 mb-2">
+                  {(settings.questions || []).map((q, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-5">{i+1}.</span>
+                      <input
+                        type="text"
+                        value={q.text || q}
+                        onChange={e => {
+                          const newQ = [...(settings.questions || [])];
+                          newQ[i] = { ...newQ[i], text: e.target.value };
+                          setSettings(p => ({...p, questions: newQ}));
+                        }}
+                        className="flex-1 border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <button onClick={() => {
+                        const newQ = settings.questions.filter((_, idx) => idx !== i);
+                        setSettings(p => ({...p, questions: newQ}));
+                      }} className="text-red-400 hover:text-red-600 text-xs px-2">✕</button>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => setSettings(p => ({...p, questions: [...(p.questions || []), { id: `q${Date.now()}`, text: '', deepening: false }]}))}
+                  className="text-xs text-primary hover:underline">
+                  ＋ 質問を追加
+                </button>
+              </div>
+
               <Button onClick={saveSettings} disabled={savingSettings} className="w-full">
                 {savingSettings ? '保存中...' : '設定を保存'}
               </Button>
