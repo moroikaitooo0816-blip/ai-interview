@@ -33,7 +33,7 @@ export default function VideoInterview() {
       const data = await response.json();
 
       // SimliのgenerateIceServersを使用
-      const iceServers = await generateIceServers(data.simli_api_key);
+      const iceRes = await fetch("/api/ice-servers"); const iceServers = await iceRes.json();
 
       const audioElement = new Audio();
       audioElement.autoplay = true;
