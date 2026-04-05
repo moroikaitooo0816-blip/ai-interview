@@ -31,6 +31,7 @@ export default function VideoInterview() {
   const streamRef = useRef(null);
   const recognitionRef = useRef(null);
   const isAISpeakingRef = useRef(false);
+  const shouldEndRef = useRef(false);
   const conversationHistoryRef = useRef([]);
 
   const startInterview = async () => {
@@ -167,10 +168,32 @@ export default function VideoInterview() {
         simliClientRef.current.sendAudioData(audioData);
 
         const speakDuration = (audioData.length / 2 / 16000) * 1000 + 300;
-        setTimeout(() => {
+        setTimeout(async () => {
           isAISpeakingRef.current = false;
           setIsAISpeaking(false);
           setStatus("面談中");
+
+          if (shouldEndRef.current) {
+            // 面談を自動終了
+            if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
+            if (simliClientRef.current) simliClientRef.current.stop();
+            if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            if (id && conversationHistoryRef.current.length > 0) {
+              setPhase("saving");
+              try {
+                await fetch('/api/interview-complete', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ candidate_id: id, conversation_history: conversationHistoryRef.current }),
+                });
+              } catch(e) { console.error(e); }
+            }
+            setPhase("ended");
+            return;
+          }
+
           // AI発話終了後に音声認識を再開
           if (recognitionRef.current) { try { recognitionRef.current.start(); } catch(e) {} }
         }, speakDuration);
