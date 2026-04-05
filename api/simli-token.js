@@ -12,7 +12,10 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         faceId: face_id,
-        syncAudio: true,
+        handleSilence: true,
+        maxSessionLength: 600,
+        maxIdleTime: 300,
+        model: "fasttalk"
       }),
     });
 
