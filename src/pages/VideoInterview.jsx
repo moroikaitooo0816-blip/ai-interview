@@ -60,7 +60,7 @@ export default function VideoInterview() {
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
 
-      const speakDuration = (audioData.length / 16000) * 1000 + 1500;
+      const speakDuration = (audioData.length / 16000) * 1000 + 500;
       setTimeout(() => {
         isAISpeakingRef.current = false;
         setIsAISpeaking(false);
@@ -88,11 +88,29 @@ export default function VideoInterview() {
     recognition.continuous = true;
     recognition.interimResults = false;
 
-    recognition.onresult = async (event) => {
-      const transcript = event.results[event.results.length - 1][0].transcript;
-      if (transcript.trim() && !isAISpeakingRef.current) {
-        await sendMessage(transcript.trim());
+    let silenceTimer = null;
+    let accumulatedText = '';
+
+    recognition.onresult = (event) => {
+      if (isAISpeakingRef.current) return;
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          accumulatedText += event.results[i][0].transcript;
+        }
       }
+
+      // 既存のタイマーをリセット
+      if (silenceTimer) clearTimeout(silenceTimer);
+
+      // 5秒間黙ったらAIが応答
+      silenceTimer = setTimeout(async () => {
+        const text = accumulatedText.trim();
+        accumulatedText = '';
+        if (text && !isAISpeakingRef.current) {
+          await sendMessage(text);
+        }
+      }, 5000);
     };
 
     recognition.onerror = (e) => {
@@ -131,7 +149,7 @@ export default function VideoInterview() {
         const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
         simliClientRef.current.sendAudioData(audioData);
 
-        const speakDuration = (audioData.length / 16000) * 1000 + 1500;
+        const speakDuration = (audioData.length / 16000) * 1000 + 500;
         setTimeout(() => {
           isAISpeakingRef.current = false;
           setIsAISpeaking(false);
