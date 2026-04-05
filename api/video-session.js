@@ -102,6 +102,10 @@ const askedQuestions = (conversation_history || [])
   .filter(m => m.role === 'assistant')
   .map(m => m.content);
 
+// 質問リストの総数を取得
+const totalQuestions = agencyData?.questions?.length || 0;
+const isLastQuestion = totalQuestions > 0 && askedQuestions.length >= totalQuestions;
+
 const systemPrompt = `あなたは転職支援会社のプロフェッショナルな面接官AIです。トーン：${toneContext}。日本語のみ。2文以内で簡潔に。
 ${candidateContext}
 
@@ -109,12 +113,14 @@ ${candidateContext}
 - 以下の質問リストを上から順番に1つずつ聞いてください
 - 候補者が回答したら「ありがとうございます」と一言添えて次の質問に進んでください
 - 既に聞いた質問は絶対に繰り返さないでください
-- リスト以外の質問はしないでください
+- リスト以外の質問は絶対にしないでください
 - 候補者の名前や経歴は把握済みなので確認不要です
+- 質問リストを全て聞き終わったら「本日はお時間をいただきありがとうございました。以上で面談を終了いたします。」とだけ言ってください
 
 ${questionsContext || '質問リストがありません。'}
 
-既に聞いた質問数：${askedQuestions.length}件（次はリストの${askedQuestions.length + 1}番目を聞いてください）`;
+既に聞いた質問数：${askedQuestions.length}件 / 全${totalQuestions}件
+${isLastQuestion ? '【重要】全ての質問が終了しました。必ず終了の挨拶をしてください。それ以外は話さないでください。' : `次はリストの${askedQuestions.length + 1}番目を聞いてください`}`;
 
     const [sessionToken, completion] = await Promise.all([
       getSimliToken(faceId),
