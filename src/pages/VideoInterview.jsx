@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
 import { motion } from "framer-motion";
 
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+];
+
 export default function VideoInterview() {
   const [isStarted, setIsStarted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -24,26 +30,34 @@ export default function VideoInterview() {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_start: true, conversation_history: [] }),
       });
       const data = await response.json();
+
       const audioElement = new Audio();
       audioElement.autoplay = true;
+
       const simliClient = new SimliClient();
       simliClientRef.current = simliClient;
+
       simliClient.Initialize({
         apiKey: data.simli_api_key,
         faceID: data.face_id,
         handleSilence: true,
         videoRef: videoRef,
         audioRef: { current: audioElement },
+        iceServers: ICE_SERVERS,
       });
+
       await simliClient.start();
+
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
+
       setConversationHistory([{ role: 'assistant', content: data.ai_text }]);
       setIsStarted(true);
       setIsConnecting(false);
