@@ -4,13 +4,13 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import CandidateInterview from '@/pages/CandidateInterview';
 import AdminDashboard from '@/pages/AdminDashboard';
 import InterviewDetail from '@/pages/InterviewDetail';
+import VideoInterview from '@/pages/VideoInterview';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
@@ -20,18 +20,10 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
-  }
-
   return (
     <Routes>
       <Route path="/" element={<CandidateInterview />} />
+      <Route path="/video" element={<VideoInterview />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/admin/interview/:id" element={<InterviewDetail />} />
       <Route path="*" element={<PageNotFound />} />
