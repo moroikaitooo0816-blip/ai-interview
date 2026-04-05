@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { SimliClient } from "simli-client";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
@@ -11,7 +11,9 @@ export default function VideoInterview() {
   const [status, setStatus] = useState("待機中");
   const [conversationHistory, setConversationHistory] = useState([]);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
+
   const videoRef = useRef(null);
+  const audioRef = useRef(null);
   const localVideoRef = useRef(null);
   const simliClientRef = useRef(null);
   const streamRef = useRef(null);
@@ -32,34 +34,38 @@ export default function VideoInterview() {
       });
       const data = await response.json();
 
-      // サーバーサイドでセッショントークンを取得
-      const tokenRes = await fetch('/api/simli-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ face_id: data.face_id }),
-      });
-      const tokenData = await tokenRes.json(); const sessionToken = tokenData.session_token;
-
-      const simliClient = new SimliClient(
-        sessionToken,
-        videoRef,
-        { current: new Audio() },
-        null,
-        undefined,
-        "livekit"
-      );
+      // SimliClientをInitializeメソッドで初期化
+      const simliClient = new SimliClient();
       simliClientRef.current = simliClient;
+
+      simliClient.Initialize({
+        apiKey: data.simli_api_key,
+        faceID: data.face_id,
+        handleSilence: true,
+        videoRef: videoRef,
+        audioRef: audioRef,
+      });
 
       await simliClient.start();
 
-      const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
-      simliClient.sendAudioData(audioData);
+      simliClient.on('connected', () => {
+        setStatus("面談中");
+        setIsStarted(true);
+        setIsConnecting(false);
+        startSpeechRecognition();
+
+        // 最初の音声を送信
+        const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
+        simliClient.sendAudioData(audioData);
+      });
+
+      simliClient.on('failed', (reason) => {
+        setStatus("エラー: " + reason);
+        setIsConnecting(false);
+      });
 
       setConversationHistory([{ role: 'assistant', content: data.ai_text }]);
-      setIsStarted(true);
-      setIsConnecting(false);
-      setStatus("面談中");
-      startSpeechRecognition();
+
     } catch (error) {
       console.error('Start error:', error);
       setStatus("エラー: " + error.message);
@@ -145,6 +151,7 @@ export default function VideoInterview() {
       </div>
       <div className="flex-1 relative">
         <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+        <audio ref={audioRef} autoPlay />
         <div className="absolute bottom-4 right-4 w-32 h-24 rounded-xl overflow-hidden border-2 border-white/20">
           <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
         </div>
