@@ -57,10 +57,11 @@ JSONのみ返してください。`
     }
 
     // 会話ログとレポートをDBに保存
+    // roleを正規化（assistant→bot、user→user）
     const messages = conversation_history.map(m => ({
-      role: m.role,
+      role: m.role === 'assistant' ? 'assistant' : 'user',
       content: m.content,
-      timestamp: new Date().toISOString()
+      timestamp: m.timestamp || new Date().toISOString()
     }));
 
     const { error } = await supabase

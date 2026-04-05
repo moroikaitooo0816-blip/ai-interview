@@ -83,7 +83,7 @@ export default function VideoInterview() {
         if (recognitionRef.current) { try { recognitionRef.current.start(); } catch(e) {} }
       }, speakDuration);
 
-      setConversationHistory([{ role: 'assistant', content: data.ai_text }]);
+      setConversationHistory([{ role: 'assistant', content: data.ai_text, timestamp: new Date().toISOString() }]);
       startSpeechRecognition();
 
     } catch (error) {
@@ -148,7 +148,7 @@ export default function VideoInterview() {
     setIsAISpeaking(true);
     setStatus("AI応答中...");
 
-    const newHistory = [...conversationHistory, { role: 'user', content: userText }];
+    const newHistory = [...conversationHistory, { role: 'user', content: userText, timestamp: new Date().toISOString() }];
 
     try {
       const response = await fetch('/api/video-session', {
@@ -175,7 +175,7 @@ export default function VideoInterview() {
         }, speakDuration);
       }
 
-      setConversationHistory([...newHistory, { role: 'assistant', content: data.ai_text }]);
+      setConversationHistory([...newHistory, { role: 'assistant', content: data.ai_text, timestamp: new Date().toISOString() }]);
 
     } catch (error) {
       isAISpeakingRef.current = false;
