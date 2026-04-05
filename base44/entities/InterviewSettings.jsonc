@@ -1,0 +1,39 @@
+{
+  "name": "InterviewSettings",
+  "type": "object",
+  "properties": {
+    "questions": {
+      "type": "array",
+      "description": "\u30ab\u30b9\u30bf\u30e0\u8cea\u554f\u30ea\u30b9\u30c8",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "deepening": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "tone": {
+      "type": "string",
+      "enum": [
+        "strict",
+        "standard",
+        "friendly"
+      ],
+      "default": "strict",
+      "description": "AI\u306e\u30c8\u30fc\u30f3\u8a2d\u5b9a"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": []
+}

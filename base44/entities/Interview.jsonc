@@ -1,0 +1,92 @@
+{
+  "name": "Interview",
+  "type": "object",
+  "properties": {
+    "candidate_name": {
+      "type": "string",
+      "description": "\u5019\u88dc\u8005\u306e\u540d\u524d"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "completed"
+      ],
+      "default": "in_progress",
+      "description": "\u9762\u8ac7\u306e\u30b9\u30c6\u30fc\u30bf\u30b9"
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "pass",
+        "hold",
+        "fail"
+      ],
+      "default": "pending",
+      "description": "\u5be9\u67fb\u30b9\u30c6\u30fc\u30bf\u30b9\uff1a\u5408\u683c\u30fb\u4fdd\u7559\u30fb\u4e0d\u5408\u683c"
+    },
+    "messages": {
+      "type": "array",
+      "description": "\u30c1\u30e3\u30c3\u30c8\u5c65\u6b74",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summaries": {
+      "type": "array",
+      "description": "9\u9805\u76ee\u3054\u3068\u306e\u8981\u7d04",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "score": {
+      "type": "number",
+      "description": "100\u70b9\u6e80\u70b9\u306e\u8a55\u4fa1\u70b9\u6570"
+    },
+    "score_breakdown": {
+      "type": "array",
+      "description": "\u9805\u76ee\u5225\u30b9\u30b3\u30a2",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "overall_comment": {
+      "type": "string",
+      "description": "\u7dcf\u5408\u8a55\u4fa1\u30b3\u30e1\u30f3\u30c8"
+    }
+  },
+  "required": [
+    "candidate_name"
+  ]
+}
