@@ -90,12 +90,50 @@ export default function VideoInterview() {
     recognitionRef.current = recognition;
     recognition.lang = 'ja-JP';
     recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.onresult = async (event) => {
-      const transcript = event.results[event.results.length - 1][0].transcript;
-      if (transcript.trim() && !isAISpeaking) await sendMessage(transcript);
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
+
+    let silenceTimer = null;
+    let lastTranscript = '';
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        lastTranscript = finalTranscript;
+      }
+
+      // 話し終わりを検知（1秒の沈黙後に送信）
+      if (silenceTimer) clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(async () => {
+        const text = lastTranscript || interimTranscript;
+        if (text.trim() && !isAISpeaking) {
+          lastTranscript = '';
+          await sendMessage(text.trim());
+        }
+      }, 1000);
     };
-    recognition.onerror = (e) => console.error('Speech error:', e);
+
+    recognition.onerror = (e) => {
+      if (e.error !== 'no-speech') console.error('Speech error:', e.error);
+    };
+
+    recognition.onend = () => {
+      // 自動再起動
+      if (recognitionRef.current) {
+        try { recognition.start(); } catch(e) {}
+      }
+    };
+
     recognition.start();
   };
 
