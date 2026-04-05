@@ -38,7 +38,7 @@ export default function VideoInterview() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ face_id: data.face_id }),
       });
-      const sessionToken = await tokenRes.json();
+      const tokenData = await tokenRes.json(); const sessionToken = tokenData.session_token;
 
       const audioElement = new Audio();
       audioElement.autoplay = true;
