@@ -50,12 +50,16 @@ function CandidateAdd() {
       const res = await fetch('/api/candidates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidate_name: name, resume_text: resumeText }),
+        body: JSON.stringify({ candidate_name: name, resume_text: resumeText || '履歴書なし' }),
       });
       const data = await res.json();
-      setResult(data);
+      if (data.message && !data.id) {
+        alert('エラー: ' + data.message);
+      } else {
+        setResult(data);
+      }
     } catch (e) {
-      alert('エラーが発生しました');
+      alert('エラーが発生しました: ' + e.message);
     }
     setLoading(false);
   };
