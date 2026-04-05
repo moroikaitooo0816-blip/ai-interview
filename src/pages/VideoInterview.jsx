@@ -54,6 +54,9 @@ export default function VideoInterview() {
       // 音声送信
       isAISpeakingRef.current = true;
       setIsAISpeaking(true);
+      // AIが喋る間は音声認識を停止
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e) {} }
+
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
 
@@ -61,6 +64,8 @@ export default function VideoInterview() {
       setTimeout(() => {
         isAISpeakingRef.current = false;
         setIsAISpeaking(false);
+        // AI発話終了後に音声認識を再開
+        if (recognitionRef.current) { try { recognitionRef.current.start(); } catch(e) {} }
       }, speakDuration);
 
       setConversationHistory([{ role: 'assistant', content: data.ai_text }]);
@@ -95,7 +100,8 @@ export default function VideoInterview() {
     };
 
     recognition.onend = () => {
-      if (recognitionRef.current === recognition) {
+      // AIが喋っていない時だけ再起動
+      if (recognitionRef.current === recognition && !isAISpeakingRef.current) {
         try { recognition.start(); } catch(e) {}
       }
     };
@@ -119,6 +125,9 @@ export default function VideoInterview() {
       const data = await response.json();
 
       if (simliClientRef.current) {
+        // AIが喋る間は音声認識を停止
+        if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch(e) {} }
+
         const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
         simliClientRef.current.sendAudioData(audioData);
 
@@ -127,6 +136,8 @@ export default function VideoInterview() {
           isAISpeakingRef.current = false;
           setIsAISpeaking(false);
           setStatus("面談中");
+          // AI発話終了後に音声認識を再開
+          if (recognitionRef.current) { try { recognitionRef.current.start(); } catch(e) {} }
         }, speakDuration);
       }
 
