@@ -1,15 +1,15 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { SimliClient, generateSimliSessionToken } from "simli-client";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Mic, MicOff, PhoneOff } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function VideoInterview() {
-  const [phase, setPhase] = useState("idle"); // idle, connecting, active, ended
+  const [phase, setPhase] = useState("idle");
   const [status, setStatus] = useState("");
   const [isMuted, setIsMuted] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState([]);
   const [isAISpeaking, setIsAISpeaking] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState([]);
 
   const videoRef = useRef(null);
   const audioRef = useRef(null);
@@ -17,19 +17,17 @@ export default function VideoInterview() {
   const simliClientRef = useRef(null);
   const streamRef = useRef(null);
   const recognitionRef = useRef(null);
+  const isAISpeakingRef = useRef(false);
 
   const startInterview = async () => {
     setPhase("connecting");
-    setStatus("カメラ・マイクに接続中...");
+    setStatus("接続中...");
+
     try {
-      // 1. カメラ・マイク取得
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       streamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
-      setStatus("AIサーバーに接続中...");
-
-      // 2. サーバーからAI返答とSimli設定を取得
       const response = await fetch('/api/video-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,9 +35,6 @@ export default function VideoInterview() {
       });
       const data = await response.json();
 
-      setStatus("アバターを起動中...");
-
-      // 3. Simliセッショントークンを取得（generateSimliSessionTokenの正しい使い方）
       const tokenData = await generateSimliSessionToken({
         apiKey: data.simli_api_key,
         config: {
@@ -49,12 +44,9 @@ export default function VideoInterview() {
           maxIdleTime: 300,
         }
       });
-      const sessionToken = tokenData.session_token;
 
-      // 4. SimliClientをLivekitモードで作成
-      // videoRef.current と audioRef.current はDOMがレンダリングされているのでnullではない
       const simliClient = new SimliClient(
-        sessionToken,
+        tokenData.session_token,
         videoRef.current,
         audioRef.current,
         null,
@@ -63,64 +55,50 @@ export default function VideoInterview() {
       );
       simliClientRef.current = simliClient;
 
-      // 5. 接続開始
       await simliClient.start();
 
-      // 6. 最初の音声を送信
+      setPhase("active");
+      setStatus("面談中");
+
+      isAISpeakingRef.current = true;
+      setIsAISpeaking(true);
+
       const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
       simliClient.sendAudioData(audioData);
 
+      // AI発話終了を検知（音声長さから推定）
+      const speakDuration = (audioData.length / 16000) * 1000 + 1000;
+      setTimeout(() => {
+        isAISpeakingRef.current = false;
+        setIsAISpeaking(false);
+      }, speakDuration);
+
       setConversationHistory([{ role: 'assistant', content: data.ai_text }]);
-      setPhase("active");
-      setStatus("面談中");
       startSpeechRecognition();
 
     } catch (error) {
       console.error('Start error:', error);
-      setStatus("エラー: " + (error.message || error));
+      setStatus("エラー: " + (error.message || String(error)));
       setPhase("idle");
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     }
   };
 
   const startSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
+
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     recognition.lang = 'ja-JP';
     recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 3;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-    let silenceTimer = null;
-    let lastTranscript = '';
-
-    recognition.onresult = (event) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
+    recognition.onresult = async (event) => {
+      const transcript = event.results[event.results.length - 1][0].transcript;
+      if (transcript.trim() && !isAISpeakingRef.current) {
+        await sendMessage(transcript.trim());
       }
-
-      if (finalTranscript) {
-        lastTranscript = finalTranscript;
-      }
-
-      // 話し終わりを検知（1秒の沈黙後に送信）
-      if (silenceTimer) clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(async () => {
-        const text = lastTranscript || interimTranscript;
-        if (text.trim() && !isAISpeaking) {
-          lastTranscript = '';
-          await sendMessage(text.trim());
-        }
-      }, 1000);
     };
 
     recognition.onerror = (e) => {
@@ -128,8 +106,7 @@ export default function VideoInterview() {
     };
 
     recognition.onend = () => {
-      // 自動再起動
-      if (recognitionRef.current) {
+      if (recognitionRef.current === recognition) {
         try { recognition.start(); } catch(e) {}
       }
     };
@@ -138,9 +115,12 @@ export default function VideoInterview() {
   };
 
   const sendMessage = async (userText) => {
+    isAISpeakingRef.current = true;
     setIsAISpeaking(true);
     setStatus("AI応答中...");
+
     const newHistory = [...conversationHistory, { role: 'user', content: userText }];
+
     try {
       const response = await fetch('/api/video-session', {
         method: 'POST',
@@ -148,32 +128,47 @@ export default function VideoInterview() {
         body: JSON.stringify({ user_message: userText, conversation_history: newHistory, is_start: false }),
       });
       const data = await response.json();
+
       if (simliClientRef.current) {
         const audioData = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
         simliClientRef.current.sendAudioData(audioData);
+
+        const speakDuration = (audioData.length / 16000) * 1000 + 1000;
+        setTimeout(() => {
+          isAISpeakingRef.current = false;
+          setIsAISpeaking(false);
+        }, speakDuration);
       }
+
       setConversationHistory([...newHistory, { role: 'assistant', content: data.ai_text }]);
       setStatus("面談中");
-      setTimeout(() => setIsAISpeaking(false), 3000);
     } catch (error) {
+      isAISpeakingRef.current = false;
       setIsAISpeaking(false);
       setStatus("面談中");
     }
   };
 
   const endInterview = () => {
-    if (recognitionRef.current) recognitionRef.current.stop();
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
     if (simliClientRef.current) simliClientRef.current.stop();
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     setPhase("ended");
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* 常にDOMに存在させる（refをnullにしないため） */}
-      <video ref={videoRef} autoPlay playsInline className={phase === "active" ? "absolute inset-0 w-full h-full object-cover" : "hidden"} />
+    <div className="min-h-screen bg-black flex flex-col relative">
+
+      {/* 常にDOMに存在（refをnullにしないため） */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        className={phase === "active" ? "absolute inset-0 w-full h-full object-cover z-0" : "hidden"}
+      />
       <audio ref={audioRef} autoPlay />
 
+      {/* 待機画面 */}
       {phase === "idle" && (
         <div className="flex-1 flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-lg">
@@ -183,17 +178,16 @@ export default function VideoInterview() {
             <h1 className="text-2xl font-bold text-foreground mb-2">AIビデオ面談</h1>
             <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
               AIアバターとのビデオ面談を開始します。<br />
-              カメラとマイクのアクセスを許可してください。<br />
-              所要時間は約10〜15分です。
+              カメラとマイクのアクセスを許可してください。
             </p>
             <Button onClick={startInterview} size="lg" className="px-8 py-6 text-base font-medium">
               ビデオ面談を開始する
             </Button>
-            <p className="text-[11px] text-muted-foreground mt-4">※ カメラ・マイクの使用許可が必要です</p>
           </motion.div>
         </div>
       )}
 
+      {/* 接続中 */}
       {phase === "connecting" && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-white">
@@ -203,44 +197,56 @@ export default function VideoInterview() {
         </div>
       )}
 
+      {/* 面談中 */}
       {phase === "active" && (
-        <>
-          <div className="flex-shrink-0 bg-black/80 px-4 py-3 flex items-center justify-between z-10">
+        <div className="relative z-10 flex flex-col h-screen">
+          {/* ヘッダー */}
+          <div className="flex-shrink-0 bg-black/60 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-white text-sm font-medium">{status}</span>
+              <div className={`w-2 h-2 rounded-full ${isAISpeaking ? 'bg-green-400 animate-pulse' : 'bg-white/50'}`} />
+              <span className="text-white text-sm">{isAISpeaking ? "AI発話中" : "あなたの番です"}</span>
             </div>
             <span className="text-white/50 text-xs">AIビデオ面談</span>
           </div>
+
           <div className="flex-1 relative">
-            <div className="absolute bottom-4 right-4 w-32 h-24 rounded-xl overflow-hidden border-2 border-white/20 z-10">
+            {/* 候補者カメラ */}
+            <div className="absolute bottom-4 right-4 w-32 h-24 rounded-xl overflow-hidden border-2 border-white/30">
               <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
             </div>
+
+            {/* 発話インジケーター */}
+            {!isAISpeaking && (
+              <div className="absolute bottom-32 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                <span className="text-white text-sm">🎤 話しかけてください</span>
+              </div>
+            )}
           </div>
-          <div className="flex-shrink-0 bg-black/80 px-4 py-6 flex items-center justify-center gap-4 z-10">
+
+          {/* コントロール */}
+          <div className="flex-shrink-0 bg-black/60 px-4 py-6 flex items-center justify-center gap-4">
             <Button variant="outline" size="icon" onClick={() => {
               if (streamRef.current) {
                 streamRef.current.getAudioTracks().forEach(t => t.enabled = isMuted);
                 setIsMuted(!isMuted);
               }
-            }} className="w-12 h-12 rounded-full bg-white/10 border-white/20 hover:bg-white/20">
+            }} className="w-12 h-12 rounded-full bg-white/10 border-white/20">
               {isMuted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
             </Button>
             <Button onClick={endInterview} size="icon" className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600">
               <PhoneOff className="w-6 h-6 text-white" />
             </Button>
           </div>
-        </>
+        </div>
       )}
 
+      {/* 終了 */}
       {phase === "ended" && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-white">
             <h2 className="text-2xl font-bold mb-4">面談が終了しました</h2>
             <p className="text-white/70 mb-8">ご参加ありがとうございました</p>
-            <Button onClick={() => window.location.href = '/'}>
-              トップページへ戻る
-            </Button>
+            <Button onClick={() => window.location.href = '/'}>トップページへ戻る</Button>
           </div>
         </div>
       )}
